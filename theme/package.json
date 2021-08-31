@@ -1,0 +1,12 @@
+{
+    "name": "wp_theme_generic",
+    "version": "1.0.0",
+    "scripts": {
+        "dev": "mix watch -- --hot --watch-options-poll=1000",
+        "production": "NODE_ENV=production webpack --progress --hide-modules --config=node_modules/laravel-mix/setup/webpack.config.js"
+    },
+    "dependencies": {
+        "laravel-mix": "^6.0.0",
+        "webpack-livereload-plugin": "^3.0.2"
+    }
+}

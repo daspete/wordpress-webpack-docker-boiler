@@ -1,0 +1,73 @@
+services:
+  database:
+    image: mysql:5.7
+    container_name: mysqldatabase
+    restart: always
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-wordpress}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-password123}
+      - MYSQL_USER=${MYSQL_USER:-myusername}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-password123}
+    volumes:
+      - ${MYSQL_HOST_VOLUME:-./data/mysql}:/var/lib/mysql
+    command:
+      - --default-authentication-plugin=mysql_native_password
+    networks:
+      - app-network
+  
+  wordpress:
+    depends_on:
+      - database
+    image: wordpress:5.3.2-fpm-alpine
+    container_name: wordpress
+    restart: always
+    environment:
+      - WORDPRESS_DB_HOST=database:3306
+      - WORDPRESS_DB_USER=${MYSQL_USER:-myusername}
+      - WORDPRESS_DB_PASSWORD=${MYSQL_PASSWORD:-password123}
+      - WORDPRESS_DB_NAME=wordpress
+    volumes:
+      - ${WORDPRESS_HOST_VOLUME:-./data/wordpress}:/var/www/html
+      - ${WORDPRESS_THEME_VOLUME:-./theme}:/var/www/html/wp-content/themes/worktheme
+    networks:
+      - app-network
+  
+  nginx:
+    image: nginx
+    depends_on: 
+      - wordpress
+    container_name: nginx
+    restart: always
+    ports:
+      - 80:80
+    volumes:
+      - ${WORDPRESS_HOST_VOLUME:-./data/wordpress}:/var/www/html
+      - ${WORDPRESS_THEME_VOLUME:-./theme}:/var/www/html/wp-content/themes/worktheme
+      - ./nginx:/etc/nginx/templates
+    environment: 
+      - NGINX_PORT=80
+      - NGINX_HOST=wordpress.localhost
+    links:
+      - wordpress
+    networks:
+      - app-network
+
+  builder:
+    image: node:16
+    depends_on:
+      - wordpress
+    container_name: builder
+    restart: always
+    volumes:
+      - ${WORDPRESS_THEME_VOLUME:-./theme}:/usr/app/
+    ports:
+      - 35729:35729
+      - 8080:8080
+    working_dir: /usr/app
+    networks:
+      - app-network
+    command: npm run dev
+
+networks:
+  app-network:
+    driver: bridge
